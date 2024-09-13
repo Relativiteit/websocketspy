@@ -4,9 +4,39 @@ import asyncio
 import logging
 import itertools
 import websockets
+import secrets
 
 from websockets.asyncio.server import serve
 from connect4 import PLAYER1, PLAYER2, Connect4
+
+JOIN = {}
+
+
+async def start(websocket):
+    # Initialize a Connect Four game, the set of WebSocket connections
+    # receiving moves from this game, and secret access token.
+    game = Connect4()
+    connected = {websocket}
+
+    join_key = secrets.token_urlsafe(12)
+    JOIN[join_key] = game, connected
+
+    try:
+        # Send the secret access token to the browser of the first player,
+        # where it'll be used for building a "join" link
+        event = {
+            "type": "init",
+            "join": join_key,
+        }
+        await websocket.send(json.dumps(event))
+
+        # tempoerary - for testing
+        print(f"first player started game", id(game))
+        async for message in websocket:
+            print(f"first player sent", message)
+
+    finally:
+        del JOIN[join_key]
 
 
 async def handler(websocket):
@@ -14,6 +44,35 @@ async def handler(websocket):
     logging.basicConfig(format="%(message)s", level=logging.DEBUG)
     # Initialize a connect four game.
     game = Connect4()
+    connected = {websocket}
+
+    join_key = secrets.token_urlsafe(12)
+    JOIN[join_key] = game, connected
+
+    # Receive and parse the "init" event from the UI.
+    message = await websocket.recv()
+    event = json .loads(message)
+    assert event["type"] == "init"
+
+    # First player starts a new game
+    await start(websocket)
+
+    try:
+        ...
+    finally:
+        del JOIN[join_key]
+
+    join_key = ...
+
+    # Find the Connect Four game.
+    game, connected = JOIN[join_key]
+
+    # Register to receive moves from this game
+    connected.add(websocket)
+    try:
+        ...
+    finally:
+        connected.remove(websocket)
 
     # Players take alternate turns, using the same browser.
     # switch this shit out for a simple algo
