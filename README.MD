@@ -30,6 +30,6 @@ Listening to `message` events from the server and deserialize it from JSON.
 
 # Share game state
 When you run a single server process you can share a global state. 
-Keep track of websocket connection, store both in the same set, use identifiers for the moves of boths / all players.
+Keep track of websocket connection, store both in the same set, use identifiers for the moves of both / all players.
 
 

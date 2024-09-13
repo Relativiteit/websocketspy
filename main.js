@@ -8,6 +8,10 @@ function receiveMoves(board, websocket) {
   websocket.addEventListener("message", ({ data }) => {
     const event = JSON.parse(data);
     switch (event.type) {
+      case "init":
+        // Create link for iniviting the second player.
+        document.querySelector(".join").href = "?join=" + event.join;
+        break;
       case "play":
         // Update the UI with the move.
         playMove(board, event.player, event.column, event.row);
@@ -55,8 +59,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
 function initGame(websocket) {
     websocket.addEventListener("open", () => {
-        // Send an "init" event for the first player.
+        // Send an "init" event according to who is connecting
+        const params = new URLSearchParams(window.location.search);
         const event = {type: "init" };
+        if (params.has("join")) {
+            // Second player joins an existing game.
+        } else { 
+            // First player starts a new game
+        }
         websocket.send(JSON.stringify(event));
     });
 }
