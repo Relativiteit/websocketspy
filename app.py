@@ -11,6 +11,56 @@ from connect4 import PLAYER1, PLAYER2, Connect4
 
 JOIN = {}
 
+WATCH = {}
+
+
+async def error(websocket, message):
+    """ 
+    Send an error message.
+    """
+    event = {
+        "type": "error",
+        "message": message,
+    }
+    await websocket.send(json.dumps(event))
+
+
+async def replay(websocket, game):
+    """ 
+    Send previous moves 
+    """
+    # Make a copy to avoid an exception if game.moves changes while iteration
+    # is in progress. If a move is played while replay is running, moves will
+    # be sent out of order but each move will be sent once and eventually the
+    # UI will be consistent.
+
+    for player, collumn, row in game.moves.copy():
+        event = {
+            "type": "play",
+            "player": player,
+            "column": column,
+            "row": row,
+        }
+        await websocket.send(json.dumps(event))
+
+
+async def play(websocket, game, player, connected):
+    """"
+    Receive and process moves from a player.
+    """
+    async for message in websocket:
+        # Parse a "play" event from the UI.
+        event = json.loads(message)
+        assert event["type"] == "play"
+        column = event["column"]
+
+        try:
+            # Play the move.
+            row = game.
+    websocket.restart()
+
+# implement coroutine for 2 connecting, restart websocket
+
 
 async def watch(websocket, watch_key):
 
@@ -24,20 +74,6 @@ async def watch(websocket, watch_key):
     # 1. close connection win event
     # 2. close connection spectator closes browser
     # 3. close connection in case of a network failure
-
-
-async def play(websocket, game, player, connected):
-    websocket.restart()
-
-# implement coroutine for 2 connectiong, restart websocket
-
-
-async def error(websocket, message):
-    event = {
-        "type": "error",
-        "message": message,
-    }
-    await websocket.send(json.dumps(event))
 
 
 async def join(websocket, join_key):
@@ -177,6 +213,7 @@ async def handler(websocket):
 
 async def main():
     async with serve(handler, "", 8001):
+        print("=server is running................ :3 ")
         await asyncio.get_running_loop().create_future()  # run forever
 
 
