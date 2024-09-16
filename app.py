@@ -56,24 +56,50 @@ async def play(websocket, game, player, connected):
 
         try:
             # Play the move.
-            row = game.
-    websocket.restart()
+            row = game.play(player, column)
+        except ValueError as exc:
+            # Send and "Error" event if the move was illegal
+            await error(websocket, str(exc))
+            continue
+        # Send a "play" event to update the UI.
+        event = {
+            "type": "play",
+            "player": player,
+            "column": column,
+            "row": row,
+        }
+        broadcast(connected, json.dumps(event))
 
-# implement coroutine for 2 connecting, restart websocket
+        # If move is winning, send a "win" event.
+        if game.winner is not None:
+            event = {
+                "type": "win",
+                "player": game.winner,
+            }
+            broadcast(connected, json.dumps(event))
 
 
 async def watch(websocket, watch_key):
+    """
+    Handle a connection from the second player: join an existing game. 
+    """
 
+    # Find the Connect Four game.
+    try:
+        game, connected = WATCH[watch_key]
+    except KeyError:
+        await error(websocket, "Game not found.")
+        return
     ...
+    # Register to receive moves from this game
     connected.add(websocket)
     try:
+        # Send the first move, in case the first player already played it.
+        await replay(websocket, game)
+        # Receive and process moves from the second player.
         await websocket.wait_closed()
     finally:
         connected.remove(websocket)
-    # 3 cases that will close the connection for a spectator
-    # 1. close connection win event
-    # 2. close connection spectator closes browser
-    # 3. close connection in case of a network failure
 
 
 async def join(websocket, join_key):
