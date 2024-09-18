@@ -110,14 +110,13 @@ async def watch(websocket, watch_key):
     """
     Handle a connection from a spectator: watch an existing game.
     """
-
     # Find the Connect Four game.
     try:
         game, connected = WATCH[watch_key]
     except KeyError:
         await error(websocket, "Game not found.")
         return
-    ...
+    
     # Register to receive moves from this game
     connected.add(websocket)
     try:
@@ -170,7 +169,6 @@ async def main():
     async with serve(handler, "", 8001):
         print("=server is running................ :3 ")
         await asyncio.get_running_loop().create_future()  # run forever
-
 
 if __name__ == "__main__":
     asyncio.run(main())
