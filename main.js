@@ -9,7 +9,7 @@ function receiveMoves(board, websocket) {
     const event = JSON.parse(data);
     switch (event.type) {
       case "init":
-        // Create link for iniviting the second player.
+        // Create link for iniviting the second player and spectators 
         document.querySelector(".join").href = "?join=" + event.join;
         break;
       case "play":
@@ -64,6 +64,10 @@ function initGame(websocket) {
         const event = {type: "init" };
         if (params.has("join")) {
             // Second player joins an existing game.
+            event.join = params.get("join");
+        } else if (params.has("watch")) {
+          // Spectator watches an existing game.
+          event.watch = params.get("watch");
         } else { 
             // First player starts a new game
         }

@@ -34,7 +34,7 @@ async def replay(websocket, game):
     # be sent out of order but each move will be sent once and eventually the
     # UI will be consistent.
 
-    for player, collumn, row in game.moves.copy():
+    for player, column, row in game.moves.copy():
         event = {
             "type": "play",
             "player": player,
@@ -42,6 +42,38 @@ async def replay(websocket, game):
             "row": row,
         }
         await websocket.send(json.dumps(event))
+
+
+async def start(websocket):
+    """
+    Handle a connection from the first player: start new game 
+    """
+    # Initialize a Connect Four game, the set of Websocket connections 
+    # receiving moves from this game, and secret access tokens. 
+    game = Connect4()
+    connected = {websocket}
+
+    join_key = secrets.token_urlsafe(12)
+    JOIN[join_key] = game, connected
+
+    watch_key = secrets.token_urlsafe(12)
+    WATCH[watch_key] = game, connected
+
+    try:
+        # Send the secret access token to the browser of the first player,
+        # where it'll be used for building a "join" link
+        event = {
+            "type": "init",
+            "join": join_key,
+            "watch": watch_key,
+        }
+        await websocket.send(json.dumps(event))
+
+        # Receive and process moves from the first layer
+        await play(websocket, game, PLAYER1, connected)
+    finally:
+        del JOIN[join_key]
+        del WATCH[watch_key]
 
 
 async def play(websocket, game, player, connected):
@@ -81,7 +113,7 @@ async def play(websocket, game, player, connected):
 
 async def watch(websocket, watch_key):
     """
-    Handle a connection from the second player: join an existing game. 
+    Handle a connection from a spectator: watch an existing game.
     """
 
     # Find the Connect Four game.
@@ -120,42 +152,28 @@ async def join(websocket, join_key):
         connected.remove(websocket)
 
 
-async def start(websocket):
-    # Initialize a Connect Four game, the set of WebSocket connections
-    # receiving moves from this game, and secret access token.
-    game = Connect4()
-    connected = {websocket}
-
-    join_key = secrets.token_urlsafe(12)
-    JOIN[join_key] = game, connected
-
-    try:
-        # Send the secret access token to the browser of the first player,
-        # where it'll be used for building a "join" link
-        event = {
-            "type": "init",
-            "join": join_key,
-        }
-        await websocket.send(json.dumps(event))
-
-        # Temporary - for testing
-        await play(websocket, game, PLAYER1, connected)
-
-    finally:
-        del JOIN[join_key]
 
 
 async def handler(websocket):
+
+    """
+    Handle a connection and dispatch it according to who is connecting.
+
+    """
+
     # Receive and parse the "init" event from the UI.
+
     message = await websocket.recv()
     event = json.loads(message)
     assert event["type"] == "init"
-
     if "join" in event:
         # Second player joins an existing game.
         await join(websocket, event["join"])
+    elif "watch" in event:
+        # Spectator watches an existing game.
+        await watch(websocket, event["watch"])
     else:
-        # First player starts a new game
+        # First player starts a new game.
         await start(websocket)
 
 
