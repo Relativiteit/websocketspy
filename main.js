@@ -11,6 +11,7 @@ function receiveMoves(board, websocket) {
       case "init":
         // Create link for iniviting the second player and spectators 
         document.querySelector(".join").href = "?join=" + event.join;
+        document.querySelector(".watch").href = "?watch=" + event.watch;
         break;
       case "play":
         // Update the UI with the move.
@@ -31,6 +32,12 @@ function receiveMoves(board, websocket) {
 }
 
 function sendMoves(board, websocket) {
+  // Don't send moves for a spectator watching a game.
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("watch")) {
+    return;
+  }
+
   // When clicking a column, send a "play" event for a move in that column.
   board.addEventListener("click", ({ target }) => {
     const column = target.dataset.column;
